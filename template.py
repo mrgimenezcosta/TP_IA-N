@@ -1,4 +1,5 @@
 import numpy as np
+import json 
 from utils import puntaje_y_no_usados, JUGADA_PLANTARSE, JUGADA_TIRAR, JUGADAS_STR
 from collections import defaultdict
 from tqdm import tqdm
@@ -168,7 +169,12 @@ class AgenteQLearning(EstadoDiezMil):
         Args:
             filename (str): Nombre/Path del archivo a generar.
         """
-        pass
+        # Convertimos la q_table a un diccionario normal para almacenarla en JSON
+        q_table_dict = {str(key): value for key, value in self.q_table.items()}
+        
+        # Escribimos el diccionario en un archivo JSON
+        with open(filename, 'w') as file:
+            json.dump(q_table_dict, file)
 
 class JugadorEntrenado(Jugador):
     def __init__(self, nombre: str, filename_politica: str):
@@ -182,9 +188,13 @@ class JugadorEntrenado(Jugador):
         Args:
             filename (str): Nombre/Path del archivo que contiene a una política almacenada. 
         """
-        pass
+        with open(filename, 'r') as file:
+            politica = json.load(file)
+        
+        # Convertimos las claves de vuelta a tuplas si es necesario
+        self.politica = {eval(key): value for key, value in politica.items()}
     
-    def jugar(
+    def jugar( #REVISAR
         self,
         puntaje_total:int,
         puntaje_turno:int,
@@ -200,7 +210,15 @@ class JugadorEntrenado(Jugador):
         Returns:
             tuple[int,list[int]]: Una jugada y la lista de dados a tirar.
         """
-        pass
+        puntaje, no_usados = puntaje_y_no_usados(dados)
+        estado = (puntaje_turno, len(dados))
+        jugada = self.politica[estado]
+        
+        if jugada == JUGADA_PLANTARSE:
+            return (JUGADA_PLANTARSE, [])
+        elif jugada == JUGADA_TIRAR:
+            return (JUGADA_TIRAR, no_usados)
+        
         # puntaje, no_usados = puntaje_y_no_usados(dados)
         # COMPLETAR
         # estado = ...
