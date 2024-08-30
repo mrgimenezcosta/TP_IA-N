@@ -14,7 +14,7 @@ class AmbienteDiezMil:
         self.puntaje_turno = 0
         self.dados = [1, 2, 3, 4, 5, 6]  # se tiran los 6 dados cuando aranca el juego
         self.termino = False  # flag para indicar si el turno termino
-        # podriamos tener un contador de turnos? 
+        # podriamos tener un contador de turnos? self.turnos = 0 ? 
 
     def reset(self):
         """Reinicia el ambiente para volver a realizar un episodio.
@@ -69,8 +69,7 @@ class EstadoDiezMil:
         """
         # ver el puntaje de ese turno y la len de dados restantes
         self.puntaje_turno = 0 #ver si gane puntaje? hacer rango? 
-        self.cant_dados = 6 #cant de dados restantes
-        # self.puntaje_rango = 0
+        self.cant_dados = 6 #cant de dados restantes 
 
     def actualizar_estado(self, puntaje_turno: int, dados: list[int]) -> None:
         """Modifica las variables internas del estado luego de una tirada.
@@ -152,14 +151,22 @@ class AgenteQLearning:
             episodios (int): Cantidad de episodios a iterar.
             verbose (bool, optional): Flag para hacer visible qué ocurre en cada paso. Defaults to False.
         """
-        for episodio in range(episodios):
+        for episodio in tqdm(range(episodios)):
             estado = EstadoDiezMil()
             self.ambiente.reset()
 
-            while not self.ambiente.termino: 
+            while self.ambiente.puntaje_total < 10000: 
                 accion = self.elegir_accion((estado.puntaje_turno, estado.cant_dados))
                 recompensa, termino = self.ambiente.step(accion)
-                
+                #actualizar estado despues de una tirada?
+                estado.actualizar_estado(self.ambiente.puntaje_turno, self.ambiente.dados)
+
+                if termino: #termina el turno y actualizo la tabla
+                    estado_anterior = (estado.puntaje_turno, estado.cant_dados) #?
+                    max_q = max(self.q_table[(estado_anterior, a)] for a in [JUGADA_PLANTARSE, JUGADA_TIRAR])
+                    self.q_table[(estado_anterior, accion)] += self.alpha * (recompensa + self.gamma * max_q - self.q_table[(estado_anterior, accion)])
+                    estado.fin_turno()
+
 
     def guardar_politica(self, filename: str):
         """Almacena la política del agente en un formato conveniente.
