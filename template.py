@@ -63,7 +63,7 @@ class AmbienteDiezMil:
 
         return recompensa, self.termino
 
-class EstadoDiezMil(AmbienteDiezMil):
+class EstadoDiezMil(): #me dijo chat que no deberia heredar al ambiente
     def __init__(self):
         """Definir qué hace a un estado de diez mil.
         Recordar que la complejidad del estado repercute en la complejidad de la tabla del agente de q-learning.
@@ -79,7 +79,7 @@ class EstadoDiezMil(AmbienteDiezMil):
             ambiente (AmbienteDiezMil): El ambiente actual para obtener el estado real.
         """
         self.puntaje_turno = ambiente.puntaje_turno
-        self.cant_dados = len(ambiente.dados)  # Reflejamos la cantidad de dados restantes en el ambiente
+        self.cant_dados = len(ambiente.dados)  # reflejamos la cantidad de dados restantes en el ambiente
     
     def fin_turno(self):
         """Modifica el estado al terminar el turno.
@@ -124,7 +124,7 @@ class AgenteQLearning(EstadoDiezMil):
         """Selecciona una acción de acuerdo a una política ε-greedy.
         """
         if np.random.rand(1) < self.epsilon: #explorando
-            return np.random.choice(JUGADA_TIRAR , JUGADA_PLANTARSE)
+            return np.random.choice([JUGADA_TIRAR , JUGADA_PLANTARSE])
         
         else: #explotar
             if self.q_table[(estado, JUGADA_TIRAR)] > self.q_table[(estado, JUGADA_PLANTARSE)]:
@@ -150,8 +150,7 @@ class AgenteQLearning(EstadoDiezMil):
                 accion = self.elegir_accion((estado.puntaje_turno, estado.cant_dados))
                 recompensa, termino = self.ambiente.step(accion)
                 estado_anterior = (estado.puntaje_turno, estado.cant_dados)
-                #actualizar estado despues de una tirada?
-                estado.actualizar_estado(self.ambiente.puntaje_turno, self.ambiente.dados)
+                estado.actualizar_estado(self.ambiente.puntaje_turno, self.ambiente.dados) #self.ambiente?
                 nuevo_estado = (estado.puntaje_turno, estado.cant_dados)
 
                 if termino: # termina el turno y actualizo la tabla para un estado terminal
