@@ -43,12 +43,12 @@ class AmbienteDiezMil:
             if puntaje_tirada == 0: 
                 self.puntaje_turno = 0
                 self.termino = True
-                recompensa = -1 # deberia haber una penalizacion: -1 ?
+                recompensa = -1 #deberia haber una penalizacion: -1 ?
 
             else:
                 self.puntaje_turno += puntaje_tirada
                 self.dados = dados_no_usados
-                recompensa = 1 #puntaje_tirada ? 
+                recompensa = 1 # puntaje_tirada ? 
 
                 if len(self.dados) < 1:
                     self.termino = True
@@ -79,7 +79,16 @@ class EstadoDiezMil:
             ... (_type_): _description_
             ... (_type_): _description_
         """
-        self.puntaje_turno = puntaje_turno
+
+        if puntaje_turno == 0:
+            self.puntaje_turno = 0  # No se ha ganado puntos
+        elif puntaje_turno <= 100:
+            self.puntaje_turno = 1  # Ganó entre 1 y 100 puntos
+        elif puntaje_turno <= 500:
+            self.puntaje_turno = 2  # Ganó entre 101 y 500 puntos
+        else:
+            self.puntaje_turno = 3  # Ganó más de 500 puntos
+
         self.cant_dados = len(dados)
     
     def fin_turno(self):
@@ -121,10 +130,19 @@ class AgenteQLearning:
         self.epsilon = epsilon
         self.q_table = defaultdict(float)
 
-    def elegir_accion(self):
+    def elegir_accion(self, estado):
         """Selecciona una acción de acuerdo a una política ε-greedy.
         """
-        pass
+        if np.random.rand(1) < self.epsilon: #explorando
+            return np.random.choice(JUGADA_TIRAR , JUGADA_PLANTARSE)
+        
+        else: #explotar
+            if self.q_table[(estado, JUGADA_TIRAR)] > self.q_table[(estado, JUGADA_PLANTARSE)]:
+                return JUGADA_TIRAR
+            elif self.q_table[(estado, JUGADA_TIRAR)] < self.q_table[(estado, JUGADA_PLANTARSE)]:
+                return JUGADA_PLANTARSE
+            else: 
+                return JUGADA_PLANTARSE
 
     def entrenar(self, episodios: int, verbose: bool = False) -> None:
         """Dada una cantidad de episodios, se repite el ciclo del algoritmo de Q-learning.
@@ -134,7 +152,14 @@ class AgenteQLearning:
             episodios (int): Cantidad de episodios a iterar.
             verbose (bool, optional): Flag para hacer visible qué ocurre en cada paso. Defaults to False.
         """
-        pass
+        for episodio in range(episodios):
+            estado = EstadoDiezMil()
+            self.ambiente.reset()
+
+            while not self.ambiente.termino: 
+                accion = self.elegir_accion((estado.puntaje_turno, estado.cant_dados))
+                recompensa, termino = self.ambiente.step(accion)
+                
 
     def guardar_politica(self, filename: str):
         """Almacena la política del agente en un formato conveniente.
