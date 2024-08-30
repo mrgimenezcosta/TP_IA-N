@@ -12,16 +12,17 @@ class AmbienteDiezMil:
         """
         self.puntaje_total = 0
         self.puntaje_turno = 0
-        self.dados = [1, 2, 3, 4, 5, 6]  # Inicialmente, se tiran los 6 dados
-        self.termino = False  # Flag para indicar si el turno ha terminado
+        self.dados = [1, 2, 3, 4, 5, 6]  # se tiran los 6 dados cuando aranca el juego
+        self.termino = False  # flag para indicar si el turno termino
+        # podriamos tener un contador de turnos? 
 
     def reset(self):
         """Reinicia el ambiente para volver a realizar un episodio.
         """
         self.puntaje_total = 0
         self.puntaje_turno = 0
-        self.dados = [1, 2, 3, 4, 5, 6]  # Inicialmente, se tiran los 6 dados
-        self.termino = False  # Flag para indicar si el turno ha terminado
+        self.dados = [1, 2, 3, 4, 5, 6]  # se tiran los 6 dados cuando aranca el juego
+        self.termino = False  # flag para indicar si el turno termino
 
     def step(self, accion):
         """Dada una acción devuelve una recompensa.
@@ -42,14 +43,15 @@ class AmbienteDiezMil:
             if puntaje_tirada == 0: 
                 self.puntaje_turno = 0
                 self.termino = True
-                recompensa = 0
+                recompensa = -1 # deberia haber una penalizacion: -1 ?
+
             else:
                 self.puntaje_turno += puntaje_tirada
                 self.dados = dados_no_usados
-                recompensa = puntaje_tirada
+                recompensa = 1 #puntaje_tirada ? 
 
-                if len(self.dados) == 0:
-                    self.dados = [1, 2, 3, 4, 5, 6]  # Vuelve a tirar todos los dados
+                if len(self.dados) < 1:
+                    self.termino = True
 
         elif accion == JUGADA_PLANTARSE:
             # El jugador se planta, se suma el puntaje del turno al total
@@ -66,24 +68,25 @@ class EstadoDiezMil:
         Recordar que la complejidad del estado repercute en la complejidad de la tabla del agente de q-learning.
         """
         # ver el puntaje de ese turno y la len de dados restantes
-        self.puntaje_turno = 0
-        self.dados = [1,2,3,4,5,6] #no creo que sea necesario
-        self.cant_dados = len(self.dados)
-        pass
+        self.puntaje_turno = 0 #ver si gane puntaje? hacer rango? 
+        self.cant_dados = 6 #cant de dados restantes
+        # self.puntaje_rango = 0
 
-    def actualizar_estado(self, *args, **kwargs) -> None:
+    def actualizar_estado(self, puntaje_turno: int, dados: list[int]) -> None:
         """Modifica las variables internas del estado luego de una tirada.
 
         Args:
             ... (_type_): _description_
             ... (_type_): _description_
         """
-        pass
+        self.puntaje_turno = puntaje_turno
+        self.cant_dados = len(dados)
     
     def fin_turno(self):
         """Modifica el estado al terminar el turno.
         """
-        pass
+        self.puntaje_turno = 0
+        self.cant_dados = 6
 
     def __str__(self):
         """Representación en texto de EstadoDiezMil.
@@ -92,7 +95,7 @@ class EstadoDiezMil:
         Returns:
             str: Representación en texto de EstadoDiezMil.
         """
-        pass   
+        return f"Puntaje Turno: {self.puntaje_turno}, Dados Restantes: {self.cant_dados}"
 
 class AgenteQLearning:
     def __init__(
@@ -112,7 +115,11 @@ class AgenteQLearning:
             gamma (float): Factor de descuento.
             epsilon (float): Probabilidad de explorar.
         """
-        pass
+        self.ambiente = ambiente
+        self.alpha = alpha
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.q_table = defaultdict(float)
 
     def elegir_accion(self):
         """Selecciona una acción de acuerdo a una política ε-greedy.
