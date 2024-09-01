@@ -39,8 +39,8 @@ class AmbienteDiezMil:
         recompensa = 0 
         if len(self.dados) > 0 and accion == JUGADA_TIRAR:
             # Tirada de dados y cálculo del puntaje
-            dados = [np.random.randint(1, 7) for _ in range(len(self.dados))]
-            puntaje_tirada, dados_no_usados = puntaje_y_no_usados(dados)
+            self.dados = [np.random.randint(1, 7) for _ in range(len(self.dados))]
+            puntaje_tirada, dados_no_usados = puntaje_y_no_usados(self.dados)
 
             if puntaje_tirada == 0: 
                 self.puntaje_turno = 0
@@ -49,9 +49,11 @@ class AmbienteDiezMil:
 
             else:
                 self.puntaje_turno += puntaje_tirada
+                self.dados = dados_no_usados
                 recompensa = 1 # puntaje_tirada ? 
 
                 if len(self.dados) < 1:
+                    self.puntaje_total += self.puntaje_turno
                     self.termino = True
 
         elif accion == JUGADA_PLANTARSE:
@@ -123,7 +125,7 @@ class AgenteQLearning(EstadoDiezMil):
     def elegir_accion(self, estado: EstadoDiezMil):
         """Selecciona una acción de acuerdo a una política ε-greedy.
         """
-        if np.random.rand(1) < self.epsilon: #explorando
+        if np.random.rand() < self.epsilon: #explorando
             return np.random.choice([JUGADA_TIRAR , JUGADA_PLANTARSE])
         
         else: #explotar
@@ -145,8 +147,10 @@ class AgenteQLearning(EstadoDiezMil):
         for episodio in tqdm(range(episodios)):
             estado = EstadoDiezMil()
             self.ambiente.reset()
+            tope_turnos = 1000
+            turno = 0
 
-            while self.ambiente.puntaje_total < 10000: 
+            while self.ambiente.puntaje_total < 10000 and turno < tope_turnos: 
                 accion = self.elegir_accion((estado.puntaje_turno, estado.cant_dados))
                 recompensa, termino = self.ambiente.step(accion)
                 estado_anterior = (estado.puntaje_turno, estado.cant_dados)
@@ -157,6 +161,7 @@ class AgenteQLearning(EstadoDiezMil):
                     # En estado terminal, no hay S_{t+1}, por lo tanto la actualización se simplifica
                     self.q_table[(estado_anterior, accion)] += self.alpha * (recompensa - self.q_table[(estado_anterior, accion)])
                     estado.fin_turno()
+                    turno += 1
                 else:
                     # Estado no terminal, sigue la actualización estándar de Q-learning
                     max_q = max(self.q_table[(nuevo_estado, a)] for a in [JUGADA_PLANTARSE, JUGADA_TIRAR])
