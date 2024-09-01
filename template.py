@@ -49,7 +49,6 @@ class AmbienteDiezMil:
 
             else:
                 self.puntaje_turno += puntaje_tirada
-                self.dados = dados_no_usados
                 recompensa = 1 # puntaje_tirada ? 
 
                 if len(self.dados) < 1:
