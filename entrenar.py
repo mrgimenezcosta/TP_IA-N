@@ -6,7 +6,7 @@ def main(episodios, verbose):
     ambiente = AmbienteDiezMil()
 
     # Crear un agente de Q-learning
-    agente = AgenteQLearning(ambiente)
+    agente = AgenteQLearning(ambiente, 0.1, 0.9, 0.1)
 
     # Entrenar al agente con un número de episodios
     agente.entrenar(episodios, verbose=verbose)

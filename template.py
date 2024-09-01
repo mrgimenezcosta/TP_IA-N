@@ -36,6 +36,7 @@ class AmbienteDiezMil:
         Returns:
             tuple[int, bool]: Una recompensa y un flag que indica si terminó el turno. 
         """
+        recompensa = 0 
         if len(self.dados) > 0 and accion == JUGADA_TIRAR:
             # Tirada de dados y cálculo del puntaje
             dados = [np.random.randint(1, 7) for _ in range(len(self.dados))]
@@ -150,7 +151,7 @@ class AgenteQLearning(EstadoDiezMil):
                 accion = self.elegir_accion((estado.puntaje_turno, estado.cant_dados))
                 recompensa, termino = self.ambiente.step(accion)
                 estado_anterior = (estado.puntaje_turno, estado.cant_dados)
-                estado.actualizar_estado(self.ambiente.puntaje_turno, self.ambiente.dados) #self.ambiente?
+                estado.actualizar_estado(self.ambiente)
                 nuevo_estado = (estado.puntaje_turno, estado.cant_dados)
 
                 if termino: # termina el turno y actualizo la tabla para un estado terminal
@@ -193,7 +194,7 @@ class JugadorEntrenado(Jugador):
         # Convertimos las claves de vuelta a tuplas si es necesario
         self.politica = {eval(key): value for key, value in politica.items()}
     
-    def jugar( #REVISAR
+    def jugar(
         self,
         puntaje_total:int,
         puntaje_turno:int,
@@ -210,11 +211,14 @@ class JugadorEntrenado(Jugador):
             tuple[int,list[int]]: Una jugada y la lista de dados a tirar.
         """
         puntaje, no_usados = puntaje_y_no_usados(dados)
+        puntaje_turno += puntaje
         estado = (puntaje_turno, len(dados))
         jugada = self.politica[estado]
         
         if jugada == JUGADA_PLANTARSE:
+            puntaje_total += puntaje_turno
             return (JUGADA_PLANTARSE, [])
+
         elif jugada == JUGADA_TIRAR:
             return (JUGADA_TIRAR, no_usados)
         
