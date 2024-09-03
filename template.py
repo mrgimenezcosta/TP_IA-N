@@ -15,7 +15,7 @@ class AmbienteDiezMil:
         self.puntaje_turno = 0
         self.dados = [1, 2, 3, 4, 5, 6]  # se tiran los 6 dados cuando aranca el juego
         self.termino = False  # flag para indicar si el turno termino
-        # podriamos tener un contador de turnos? self.turnos = 0 ? 
+        self.turnos = 1 
 
     def reset(self):
         """Reinicia el ambiente para volver a realizar un episodio.
@@ -24,6 +24,7 @@ class AmbienteDiezMil:
         self.puntaje_turno = 0
         self.dados = [1, 2, 3, 4, 5, 6]  # se tiran los 6 dados cuando aranca el juego
         self.termino = False  # flag para indicar si el turno termino
+        self.turnos = 1
 
     def step(self, accion):
         """Dada una acción devuelve una recompensa.
@@ -43,24 +44,27 @@ class AmbienteDiezMil:
             puntaje_tirada, dados_no_usados = puntaje_y_no_usados(self.dados)
 
             if puntaje_tirada == 0: 
+                recompensa = - self.turnos * self.puntaje_turno
                 self.puntaje_turno = 0
                 self.termino = True
-                recompensa = -1 #deberia haber una penalizacion: -1 ?
+                self.turnos += 1
 
             else:
                 self.puntaje_turno += puntaje_tirada
                 self.dados = dados_no_usados
-                recompensa = 1 # puntaje_tirada ? 
+                recompensa = puntaje_tirada / self.turnos
 
                 if len(self.dados) < 1:
-                    self.puntaje_total += self.puntaje_turno
-                    self.termino = True
+                    # self.puntaje_total += self.puntaje_turno
+                    # self.termino = True
+                    self.dados = [1, 2, 3, 4, 5, 6]
 
         elif accion == JUGADA_PLANTARSE:
             # El jugador se planta, se suma el puntaje del turno al total
             self.puntaje_total += self.puntaje_turno
             self.puntaje_turno = 0
             self.termino = True
+            self.turnos += 1
             recompensa = 0
 
         return recompensa, self.termino
@@ -214,10 +218,20 @@ class JugadorEntrenado(Jugador):
         Returns:
             tuple[int,list[int]]: Una jugada y la lista de dados a tirar.
         """
+        with open('politica_1000.csv', 'r') as file:
+            politica = json.load(file)
+        
+        # Convertimos las claves de vuelta a tuplas si es necesario
+        self.politica = {eval(key): value for key, value in politica.items()}
+
         puntaje, no_usados = puntaje_y_no_usados(dados)
         puntaje_turno += puntaje
         estado = (puntaje_turno, len(dados))
-        jugada = self.politica[estado]
+
+        if estado in self.politica:
+            jugada = self.politica[estado]
+        else:
+            jugada = np.random.choice([JUGADA_TIRAR , JUGADA_PLANTARSE])
         
         if jugada == JUGADA_PLANTARSE:
             puntaje_total += puntaje_turno
