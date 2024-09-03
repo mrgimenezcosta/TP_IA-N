@@ -124,7 +124,7 @@ class AgenteQLearning(EstadoDiezMil):
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
-        self.q_table = defaultdict(float)
+        self.q_table = defaultdict(lambda: 50)
 
     def elegir_accion(self, estado: EstadoDiezMil):
         """Selecciona una acción de acuerdo a una política ε-greedy.
@@ -151,10 +151,8 @@ class AgenteQLearning(EstadoDiezMil):
         for episodio in tqdm(range(episodios)):
             estado = EstadoDiezMil()
             self.ambiente.reset()
-            tope_turnos = 1000
-            turno = 0
 
-            while self.ambiente.puntaje_total < 10000 and turno < tope_turnos: 
+            while self.ambiente.puntaje_total < 10000: 
                 accion = self.elegir_accion((estado.puntaje_turno, estado.cant_dados))
                 recompensa, termino = self.ambiente.step(accion)
                 estado_anterior = (estado.puntaje_turno, estado.cant_dados)
@@ -165,7 +163,6 @@ class AgenteQLearning(EstadoDiezMil):
                     # En estado terminal, no hay S_{t+1}, por lo tanto la actualización se simplifica
                     self.q_table[(estado_anterior, accion)] += self.alpha * (recompensa - self.q_table[(estado_anterior, accion)])
                     estado.fin_turno()
-                    turno += 1
                 else:
                     # Estado no terminal, sigue la actualización estándar de Q-learning
                     max_q = max(self.q_table[(nuevo_estado, a)] for a in [JUGADA_PLANTARSE, JUGADA_TIRAR])
@@ -218,7 +215,7 @@ class JugadorEntrenado(Jugador):
         Returns:
             tuple[int,list[int]]: Una jugada y la lista de dados a tirar.
         """
-        with open('politica_1000.csv', 'r') as file:
+        with open('politica_100000.csv', 'r') as file:
             politica = json.load(file)
         
         # Convertimos las claves de vuelta a tuplas si es necesario
