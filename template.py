@@ -44,15 +44,15 @@ class AmbienteDiezMil:
             puntaje_tirada, dados_no_usados = puntaje_y_no_usados(self.dados)
 
             if puntaje_tirada == 0: 
-                recompensa = - self.puntaje_turno
+                self.turnos += 1
+                recompensa = - self.puntaje_turno * self.turnos
                 self.puntaje_turno = 0
                 self.termino = True
-                self.turnos += 1
 
             else:
                 self.puntaje_turno += puntaje_tirada
                 self.dados = dados_no_usados
-                recompensa = self.puntaje_turno
+                recompensa = self.puntaje_turno / self.turnos
 
                 if len(self.dados) == 0:
                     self.dados = [1, 2, 3, 4, 5, 6]
@@ -63,7 +63,7 @@ class AmbienteDiezMil:
             self.puntaje_turno = 0
             self.termino = True
             self.turnos += 1
-            recompensa = 0
+            recompensa = -self.turnos
 
         return recompensa, self.termino
 
@@ -124,16 +124,19 @@ class AgenteQLearning(EstadoDiezMil):
         self.epsilon = epsilon
         
         self.q_table = defaultdict(float)
-        # for i in range (50, 20000, 50):
-        #     for j in range(1,7):
-        #         self.q_table[(i, j), JUGADA_TIRAR] = 0
-        #         self.q_table[(i, j), JUGADA_PLANTARSE] = 0
+        for i in range (50, 20000, 50):
+            for j in range(1,7):
+                self.q_table[(i, j), JUGADA_TIRAR] = 0
+                self.q_table[(i, j), JUGADA_PLANTARSE] = 0
         
     def elegir_accion(self, estado: EstadoDiezMil):
         """Selecciona una acción de acuerdo a una política ε-greedy.
         """
         if np.random.rand() < self.epsilon: #explorando
-            return np.random.choice([JUGADA_TIRAR , JUGADA_PLANTARSE])
+            if self.q_table[(estado, JUGADA_TIRAR)] > self.q_table[(estado, JUGADA_PLANTARSE)]:
+                return JUGADA_PLANTARSE
+            else:
+                return JUGADA_TIRAR
         
         else: #explotar
             if self.q_table[(estado, JUGADA_TIRAR)] > self.q_table[(estado, JUGADA_PLANTARSE)]:
@@ -143,7 +146,7 @@ class AgenteQLearning(EstadoDiezMil):
             else: 
                 return JUGADA_TIRAR
 
-    def entrenar(self, episodios: int, verbose: bool = False) -> None:
+    def entrenar(self, episodios: int, verbose: bool = True) -> None:
         """Dada una cantidad de episodios, se repite el ciclo del algoritmo de Q-learning.
         Recomendación: usar tqdm para observar el progreso en los episodios.
 
@@ -155,9 +158,9 @@ class AgenteQLearning(EstadoDiezMil):
             estado = EstadoDiezMil()
             self.ambiente.reset()
 
-            while self.ambiente.puntaje_total < 10000: 
+            while self.ambiente.puntaje_total < 10000:
                 accion = self.elegir_accion((estado.puntaje_turno, estado.cant_dados))
-                recompensa, termino = self.ambiente.step(accion)
+                recompensa, termino= self.ambiente.step(accion)
                 estado_anterior = (estado.puntaje_turno, estado.cant_dados)
                 estado.actualizar_estado(self.ambiente)
                 nuevo_estado = (estado.puntaje_turno, estado.cant_dados)
@@ -186,7 +189,7 @@ class AgenteQLearning(EstadoDiezMil):
             q_plantarse = self.q_table[(estado, JUGADA_PLANTARSE)]
             
             # Elegir la mejor acción según los Q-values
-            mejor_accion = JUGADA_TIRAR if q_tirar >= q_plantarse else JUGADA_PLANTARSE
+            mejor_accion = JUGADA_TIRAR if q_tirar >= q_plantarse else JUGADA_PLANTARSE ##REVISAR
             
             # Guardar la mejor acción en el diccionario
             politica_dict[str(estado)] = mejor_accion
@@ -240,11 +243,17 @@ class JugadorEntrenado(Jugador):
         """
         #print("Política cargada:", self.politica)
 
-        puntaje, no_usados = puntaje_y_no_usados(dados)
-        puntaje_turno += puntaje
-        estado = (puntaje_turno, len(dados))
+        puntaje_tirada, no_usados = puntaje_y_no_usados(dados)
+        puntaje_turno += puntaje_tirada
+        if len(no_usados) == 0:
+            estado = (puntaje_turno, 6)
+        else : 
+            estado = (puntaje_turno, len(no_usados))
 
+        # print(estado, len(no_usados), dados, no_usados)
         jugada = self.politica[estado]
+
+        jugada = np.argmax(jugada)
         
         if jugada == 0:
             puntaje_total += puntaje_turno
@@ -253,7 +262,7 @@ class JugadorEntrenado(Jugador):
         elif jugada == 1:
             return (JUGADA_TIRAR, no_usados)
         
-        puntaje, no_usados = puntaje_y_no_usados(dados)
+        # puntaje, no_usados = puntaje_y_no_usados(dados)
 
         # COMPLETAR
         # estado = ...

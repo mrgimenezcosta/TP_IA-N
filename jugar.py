@@ -2,7 +2,7 @@ import argparse
 from tqdm import tqdm
 from diezmil import JuegoDiezMil
 from template import JugadorEntrenado
-from jugador import JugadorSiempreSePlanta
+from jugador import JugadorAleatorio
 
 def main(politica_filename, verbose):
     puntajes = []
@@ -12,7 +12,7 @@ def main(politica_filename, verbose):
     for play in tqdm(range(500)):
         jugador = JugadorEntrenado('qlearning', 'politica_10000.json')
         juego = JuegoDiezMil(jugador)
-        jugador_random = JugadorSiempreSePlanta('planton')
+        jugador_random = JugadorAleatorio('random')
         juego_random = JuegoDiezMil(jugador_random)
         cantidad_turnos, puntaje_final = juego.jugar(verbose=verbose)
         cantidad_turnos_random, puntaje_final_random = juego_random.jugar(verbose=verbose)
