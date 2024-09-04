@@ -6,11 +6,11 @@ def main(episodios, verbose):
     ambiente = AmbienteDiezMil()
 
     # Crear un agente de Q-learning
-    agente = AgenteQLearning(ambiente, 0.05, 0.9, 0.1)
+    agente = AgenteQLearning(ambiente, 0.1, 0.9, 0.1)
 
     # Entrenar al agente con un número de episodios
     agente.entrenar(episodios, verbose=verbose)
-    agente.guardar_politica(f"politica_{episodios}.csv")
+    agente.guardar_politica(f"politica_{episodios}.json")
 
 if __name__ == '__main__':
     # Crear un analizador de argumentos

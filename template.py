@@ -38,13 +38,13 @@ class AmbienteDiezMil:
             tuple[int, bool]: Una recompensa y un flag que indica si terminó el turno. 
         """
         recompensa = 0 
-        if len(self.dados) > 0 and accion == JUGADA_TIRAR:
+        if accion == JUGADA_TIRAR:
             # Tirada de dados y cálculo del puntaje
             self.dados = [np.random.randint(1, 7) for _ in range(len(self.dados))]
             puntaje_tirada, dados_no_usados = puntaje_y_no_usados(self.dados)
 
             if puntaje_tirada == 0: 
-                recompensa = - self.turnos * self.puntaje_turno
+                recompensa = - self.puntaje_turno
                 self.puntaje_turno = 0
                 self.termino = True
                 self.turnos += 1
@@ -52,11 +52,9 @@ class AmbienteDiezMil:
             else:
                 self.puntaje_turno += puntaje_tirada
                 self.dados = dados_no_usados
-                recompensa = puntaje_tirada / self.turnos
+                recompensa = self.puntaje_turno
 
-                if len(self.dados) < 1:
-                    # self.puntaje_total += self.puntaje_turno
-                    # self.termino = True
+                if len(self.dados) == 0:
                     self.dados = [1, 2, 3, 4, 5, 6]
 
         elif accion == JUGADA_PLANTARSE:
@@ -124,8 +122,13 @@ class AgenteQLearning(EstadoDiezMil):
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
-        self.q_table = defaultdict(lambda: 50)
-
+        
+        self.q_table = defaultdict(float)
+        # for i in range (50, 20000, 50):
+        #     for j in range(1,7):
+        #         self.q_table[(i, j), JUGADA_TIRAR] = 0
+        #         self.q_table[(i, j), JUGADA_PLANTARSE] = 0
+        
     def elegir_accion(self, estado: EstadoDiezMil):
         """Selecciona una acción de acuerdo a una política ε-greedy.
         """
@@ -138,7 +141,7 @@ class AgenteQLearning(EstadoDiezMil):
             elif self.q_table[(estado, JUGADA_TIRAR)] < self.q_table[(estado, JUGADA_PLANTARSE)]:
                 return JUGADA_PLANTARSE
             else: 
-                return JUGADA_PLANTARSE
+                return JUGADA_TIRAR
 
     def entrenar(self, episodios: int, verbose: bool = False) -> None:
         """Dada una cantidad de episodios, se repite el ciclo del algoritmo de Q-learning.
@@ -174,12 +177,23 @@ class AgenteQLearning(EstadoDiezMil):
         Args:
             filename (str): Nombre/Path del archivo a generar.
         """
-        # Convertimos la q_table a un diccionario normal para almacenarla en JSON
-        q_table_dict = {str(key): value for key, value in self.q_table.items()}
+        politica_dict = {}
+    
+        # Iterar sobre todos los estados únicos y sus acciones posibles
+        for estado in set(key[0] for key in self.q_table.keys()):
+            # Obtener los Q-values para las acciones posibles en este estado
+            q_tirar = self.q_table[(estado, JUGADA_TIRAR)]
+            q_plantarse = self.q_table[(estado, JUGADA_PLANTARSE)]
+            
+            # Elegir la mejor acción según los Q-values
+            mejor_accion = JUGADA_TIRAR if q_tirar >= q_plantarse else JUGADA_PLANTARSE
+            
+            # Guardar la mejor acción en el diccionario
+            politica_dict[str(estado)] = mejor_accion
         
-        # Escribimos el diccionario en un archivo JSON
+        # Escribir el diccionario en un archivo JSON
         with open(filename, 'w') as file:
-            json.dump(q_table_dict, file)
+            json.dump(politica_dict, file)
 
 class JugadorEntrenado(Jugador):
     def __init__(self, nombre: str, filename_politica: str):
@@ -197,8 +211,17 @@ class JugadorEntrenado(Jugador):
             politica = json.load(file)
         
         # Convertimos las claves de vuelta a tuplas si es necesario
-        self.politica = {eval(key): value for key, value in politica.items()}
-    
+        self.politica = {}
+        for key, value in politica.items():
+            try:
+                # Convertir el string a una tupla
+                estado = eval(key)
+                self.politica[estado] = value
+            except:
+                print(f"Error al procesar la clave: {key}")
+
+        return self.politica
+
     def jugar(
         self,
         puntaje_total:int,
@@ -215,29 +238,23 @@ class JugadorEntrenado(Jugador):
         Returns:
             tuple[int,list[int]]: Una jugada y la lista de dados a tirar.
         """
-        with open('politica_100000.csv', 'r') as file:
-            politica = json.load(file)
-        
-        # Convertimos las claves de vuelta a tuplas si es necesario
-        self.politica = {eval(key): value for key, value in politica.items()}
+        #print("Política cargada:", self.politica)
 
         puntaje, no_usados = puntaje_y_no_usados(dados)
         puntaje_turno += puntaje
         estado = (puntaje_turno, len(dados))
 
-        if estado in self.politica:
-            jugada = self.politica[estado]
-        else:
-            jugada = np.random.choice([JUGADA_TIRAR , JUGADA_PLANTARSE])
+        jugada = self.politica[estado]
         
-        if jugada == JUGADA_PLANTARSE:
+        if jugada == 0:
             puntaje_total += puntaje_turno
             return (JUGADA_PLANTARSE, [])
 
-        elif jugada == JUGADA_TIRAR:
+        elif jugada == 1:
             return (JUGADA_TIRAR, no_usados)
         
-        # puntaje, no_usados = puntaje_y_no_usados(dados)
+        puntaje, no_usados = puntaje_y_no_usados(dados)
+
         # COMPLETAR
         # estado = ...
         # jugada = self.politica[estado]

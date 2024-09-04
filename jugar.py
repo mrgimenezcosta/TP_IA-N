@@ -2,7 +2,7 @@ import argparse
 from tqdm import tqdm
 from diezmil import JuegoDiezMil
 from template import JugadorEntrenado
-from jugador import JugadorAleatorio
+from jugador import JugadorSiempreSePlanta
 
 def main(politica_filename, verbose):
     puntajes = []
@@ -10,9 +10,9 @@ def main(politica_filename, verbose):
     puntajes_random = []
     cant_turnos_random = []
     for play in tqdm(range(500)):
-        jugador = JugadorEntrenado('qlearning', 'politica_100000.csv')
+        jugador = JugadorEntrenado('qlearning', 'politica_10000.json')
         juego = JuegoDiezMil(jugador)
-        jugador_random = JugadorAleatorio('random')
+        jugador_random = JugadorSiempreSePlanta('planton')
         juego_random = JuegoDiezMil(jugador_random)
         cantidad_turnos, puntaje_final = juego.jugar(verbose=verbose)
         cantidad_turnos_random, puntaje_final_random = juego_random.jugar(verbose=verbose)
@@ -33,6 +33,5 @@ if __name__ == '__main__':
 
     # Parsear los argumentos
     args = parser.parse_args()
-
     # Llamar a la función principal con los argumentos proporcionados
     main(args.politica_filename, args.verbose)
